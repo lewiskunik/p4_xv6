@@ -11,12 +11,6 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
-
-struct {
-  //uhhh look at spinlock.c and spinlock.h
-
-} lock_t;
-
 static struct proc *initproc;
 
 int nextpid = 1;

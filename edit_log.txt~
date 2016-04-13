@@ -1,0 +1,14 @@
+- #define SYS_clone and SYS_join in include/syscall.h
+- SYSCALL(clone) and SYSCALL(join) in user/usys.S
+- added to user/user.h:
+	-struct lock_t; (at the top)
+	in system calls:
+	-int clone(void(*fcn)(void*), void *arg, void *stack);
+	-int join(void **stack);
+	in library functions:
+	-void thread_create(void (*start_routine)(void*), void *arg);
+	-void lock_acquire(struct lock_t *);
+	-void lock_release(struct lock_t *);
+- added int sys_clone(void) and int sys_join(void) to kernel/sysfunc.h
+- added [SYS_clone] sys_clone and [SYS_join] sys_join to kernel/syscall.c
+- added functions sys_clone(void) and sys_join(void) to kernel/sysproc.c, and from here we will call 

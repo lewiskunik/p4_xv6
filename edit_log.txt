@@ -1,0 +1,25 @@
+- #define SYS_clone and SYS_join in include/syscall.h
+
+- SYSCALL(clone) and SYSCALL(join) in user/usys.S
+
+- added to user/user.h:
+	-struct lock_t; (at the top)
+	in system calls:
+	-int clone(void(*fcn)(void*), void *arg, void *stack);
+	-int join(void **stack);
+	in library functions:
+	-void thread_create(void (*start_routine)(void*), void *arg);
+	-void lock_acquire(struct lock_t *);
+	-void lock_release(struct lock_t *);
+
+- added int sys_clone(void) and int sys_join(void) to kernel/sysfunc.h
+
+- added [SYS_clone] sys_clone and [SYS_join] sys_join to kernel/syscall.c
+
+- added functions sys_clone(void) and sys_join(void) to kernel/sysproc.c, and from here I take in arguments using argptr [TODO: check and see if those work, there are weird pointer things, etc] and call clone_thread() and join_thread() with their arguments, these functions are implemented in proc.c.
+
+- added clone_thread(void(*fcn)(void*), void *, void*) and join_thread(void **) to kernel/defs.h
+
+- started writing the functions for clone_thread(blah) and join_thread(blah) in kernel/proc.c
+
+- added a definition of lock_t struct in kernel/proc.c, but [TODO: actually need to put fields in it]
