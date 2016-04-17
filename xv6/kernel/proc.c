@@ -13,7 +13,7 @@ struct {
 
 
 struct {
-  //uhhh look at spinlock.c and spinlock.h
+  uint held;
 
 } lock_t;
 
@@ -452,16 +452,71 @@ procdump(void)
 int clone_thread(void(*fcn)(void*), void *arg, void*stack)
 {
 
+///this is fork copied into here, need to change!
 
-	return 0;
+  int i, pid;
+  struct proc *np;
+  //*np = *proc;
+/*
+  // Allocate process.
+  if((np = allocproc()) == 0)
+    return -1;
+*/
+  // Copy process state from p.
+  if((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
+    kfree(np->kstack);
+    np->kstack = stack;
+    np->state = UNUSED;
+    return -1;
+  }
+
+  np->sz = proc->sz;
+  np->parent = proc->parent;
+  *np->tf = *proc->tf;
+
+  // Clear %eax so that fork returns 0 in the child.
+  //np->tf->eax = 0;
+
+  for(i = 0; i < NOFILE; i++)
+    if(proc->ofile[i])
+      np->ofile[i] = filedup(proc->ofile[i]);
+  np->cwd = idup(proc->cwd);
+ 
+/// added this:
+/////// give new proc the same pid as current running proc
+  np->pid = proc->pid;
+
+  pid = proc->pid;
+  np->state = RUNNABLE;
+  safestrcpy(np->name, proc->name, sizeof(proc->name));
+  return pid;
 }
 
 int join_thread(void **stack)
 {
 
-
+	
 	return 0;
 }
 
+void thread_create(void (*start_routine)(void*), void *arg)
+{
+	
 
+}
+
+void lock_acquire(lock_t *lock)
+{
+
+}
+
+void lock_release(lock_t *lock)
+{
+
+}
+
+void lock_init(lock_t *lock)
+{
+
+}
 

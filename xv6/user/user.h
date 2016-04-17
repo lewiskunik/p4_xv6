@@ -45,6 +45,7 @@ int atoi(const char*);
 void thread_create(void (*start_routine)(void*), void *arg);
 void lock_acquire(struct lock_t *);
 void lock_release(struct lock_t *);
+void lock_init(struct lock_t *);
 
 #endif // _USER_H_
 

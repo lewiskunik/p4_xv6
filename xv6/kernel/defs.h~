@@ -109,8 +109,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
-int		clone_thread(void(*fcn)(void*), void *arg, void*stack);
-int		join_thread(void **stack);
+int		clone_thread(void(*fcn)(void*), void *, void*);
+int		join_thread(void **);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

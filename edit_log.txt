@@ -11,6 +11,7 @@
 	-void thread_create(void (*start_routine)(void*), void *arg);
 	-void lock_acquire(struct lock_t *);
 	-void lock_release(struct lock_t *);
+	-void lock_init(struct lock_t *);
 
 - added int sys_clone(void) and int sys_join(void) to kernel/sysfunc.h
 
@@ -22,4 +23,8 @@
 
 - started writing the functions for clone_thread(blah) and join_thread(blah) in kernel/proc.c
 
-- added a definition of lock_t struct in kernel/proc.c, but [TODO: actually need to put fields in it]
+- added a definition of lock_t struct in kernel/proc.c, has uint held field
+
+- added functions thread_create, lock_acquire, lock_release, lock_init to kernel/proc.c
+
+
