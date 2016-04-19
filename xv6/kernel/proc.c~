@@ -6,16 +6,18 @@
 #include "proc.h"
 #include "spinlock.h"
 
+//#define PGSIZE = 4096;
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
 } ptable;
 
 
-struct {
+typedef struct {
   uint held;
 
-} lock_t;
+}lock_t;
 
 static struct proc *initproc;
 
@@ -223,6 +225,9 @@ wait(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent != proc)
         continue;
+	//check if this proc is a thread - should skip if yes
+      if(p->pgdir == proc->pgdir)
+	continue;
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
@@ -456,63 +461,186 @@ int clone_thread(void(*fcn)(void*), void *arg, void*stack)
 
   int i, pid;
   struct proc *np;
-  *np = *proc;
-/*
+  //*np = *proc;
+
+  //good
   // Allocate process.
   if((np = allocproc()) == 0)
     return -1;
-*/
-  // Copy process state from p.
-  if((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
-    kfree(np->kstack);
-    np->kstack = stack;
-    np->state = UNUSED;
-    return -1;
-  }
+  //good: shares calling process address space!
+  np->pgdir = proc->pgdir;
 
+  //good
   np->sz = proc->sz;
-  np->parent = proc->parent;
+  np->parent = proc;
   *np->tf = *proc->tf;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
+  //good
   for(i = 0; i < NOFILE; i++)
     if(proc->ofile[i])
       np->ofile[i] = filedup(proc->ofile[i]);
+  //not sure:
   np->cwd = idup(proc->cwd);
  
+  //not sure
   pid = np->pid;
+
+  //good
   np->state = RUNNABLE;
+
+  //gives same name to thread as parent proc
   safestrcpy(np->name, proc->name, sizeof(proc->name));
+
+///////////////////////////////////////////////////
+// exec, basically:
+///////////////////////////////////////////////////
+
+//exec gets passed: char *path, char **argv
+
+  //char *s, *last;
+  //int off;
+  //uint argc, sz, sp, ustack[3+MAXARG+1];
+  uint argc, sp, ustack[5];
+  //pde_t *pgdir, *oldpgdir;
+
+  
+
+    //trying this out:
+  stack += PGSIZE - sizeof(char*);
+  np->tf->esp = (uint)stack;  //this will set the stack pointer to stack.
+  np->tf->eip = (uint)fcn;  // this will set the instruction pointer to the function
+  // Allocate a one-page stack at the next page boundary
+  //
+  /*
+  sz = PGROUNDUP(sz);
+  if((sz = allocuvm(pgdir, sz, sz + PGSIZE)) == 0)
+    goto bad;
+
+  */
+
+  // Push argument strings, prepare rest of stack in ustack.
+  //changed to "stack" from "sz"
+  sp = 0;
+  /*
+  for(argc = 0; argv[argc]; argc++) {
+    if(argc >= MAXARG)
+      goto bad;
+    sp -= strlen(argv[argc]) + 1;
+    sp &= ~3;
+    if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
+      goto bad;
+    ustack[3+argc] = sp;
+  }
+ */
+  
+
+  ustack[3+argc] = 0;
+
+  ustack[0] = 0xffffffff;  // fake return PC
+  ustack[1] = argc;
+  ustack[2] = sp - (argc+1)*4;  // argv pointer
+
+  sp -= (3+argc+1) * 4;
+  //if(copyout(np->pgdir, sp, ustack, (3+argc+1)*4) < 0)
+    //goto bad;
+
+  
+  // Commit to the user image.
+  //oldpgdir = proc->pgdir;
+  //proc->pgdir = pgdir;
+  //proc->sz = sz;
+  //proc->tf->eip = elf.entry;  // main
+  //proc->tf->esp = sp;
+  //switchuvm(proc);
+  //freevm(oldpgdir);
+
+  //return 0;
+
+ 
+
+///////////////////////////////////////
+// End Exec
+///////////////////////////////////////
+
+
+
   return pid;
+
+
+  
+
 }
 
 int join_thread(void **stack)
 {
 
+
+  struct proc *p;
+  int havekids, pid;
+
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for zombie children.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != proc)
+        continue;
+	//if it isn't a thread, skip it.
+      if(p->pgdir != proc->pgdir)
+	continue;
+      havekids = 1;
+      if(p->state == ZOMBIE){
+        // Found one.
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->state = UNUSED;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || proc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(proc, &ptable.lock);  //DOC: wait-sleep
+  }
 	
 	return 0;
 }
 
-void thread_create(void (*start_routine)(void*), void *arg)
-{
+
+////PUT THIS ELSEWHERE
+//void thread_create(void (*start_routine)(void*), void *arg)
+//{
 	
 
-}
+//}
 
 void lock_acquire(lock_t *lock)
 {
-
+	lock->held = 1;
 }
 
 void lock_release(lock_t *lock)
 {
-
+	lock->held = 0;
 }
 
 void lock_init(lock_t *lock)
 {
-
+	lock->held = 0;
 }
 

@@ -91,21 +91,21 @@ sys_uptime(void)
 
 
 int
-sys_clone(void);
+sys_clone(void)
 {
   //first argument
   void(*fcn)(void*);
-  if(argptr(0, &fcn, sizeof((*fcn)(void*))) < 0)
+  if(argptr(0, (char**)&fcn, sizeof(void*)) < 0)
     return -1;
 
   //second argument
   void *arg;
-  if(argptr(0, &arg, sizeof(void*)) < 0)
+  if(argptr(0, (char**)&arg, sizeof(void*)) < 0)
     return -1;
 
   //third argument
   void *stack;
-  if(argptr(0, &stack, sizeof(void*)) < 0)
+  if(argptr(0, (char**)&stack, sizeof(void*)) < 0)
     return -1;
 
   //call function
@@ -120,13 +120,13 @@ int
 sys_join(void)
 {
   //first argument
-  void **stack;
-  if(argptr(0, &stack, sizeof(void*)) < 0)
+  char **stack;
+  if(argptr(0, (char **)&stack, sizeof(void*)) < 0)
     return -1;
 
   //call function
   int val;
-  val = join_thread(stack);
+  val = join_thread((void **)stack);
 
   return val;
 

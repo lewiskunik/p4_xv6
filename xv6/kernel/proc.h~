@@ -75,7 +75,8 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   //added fields:
-  
+  volatile int tgid;	       // Thread group id
+  int shares_parent_AS;
   
 };
 
